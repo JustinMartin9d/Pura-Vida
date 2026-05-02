@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vida – Pura Vida Miami AI Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Playfair+Display:ital@1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --pv-navy:       #1B3A5C;
+    --pv-blue:       #2E6DA4;
+    --pv-sky:        #5BA3D9;
+    --pv-light-blue: #A8D4F0;
+    --pv-mint:       #E8F7F0;
+    --pv-green:      #4CAF7D;
+    --pv-cream:      #FAFAF8;
+    --pv-white:      #FFFFFF;
+    --pv-gold:       #D4A843;
+    --text-dark:     #1A2E3B;
+    --text-mid:      #3D5A6B;
+    --text-light:    #7A9BAD;
+    --salmon:        #F07070;
+    /* Beach Mode */
+    --beach-sand:    #FFF8E7;
+    --beach-ocean:   #0093C4;
+    --beach-wave:    #00B4D8;
+    --beach-sun:     #FFB703;
+    --beach-coral:   #FF6B6B;
+    --beach-palm:    #2D6A4F;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; font-family: 'Poppins', sans-serif; background: var(--pv-cream); color: var(--text-dark); }
+  .app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; transition: background .5s; }
+
+  /* ═══ BEACH MODE ═══ */
+  .app.beach-mode { background: var(--beach-sand); }
+  .app.beach-mode .header { background: linear-gradient(135deg, var(--beach-ocean), var(--beach-wave)); border-bottom-color: var(--beach-sun); }
+  .app.beach-mode .header-text h1 { color: #fff; }
+  .app.beach-mode .header-text .tagline { color: var(--beach-sun); }
+  .app.beach-mode .header-text .sub { color: rgba(255,255,255,0.65); }
+  .app.beach-mode .wave-band { background: var(--beach-sand); }
+  .app.beach-mode .chat-body { background: var(--beach-sand); }
+  .app.beach-mode .chat-body::before { content: '🌊'; }
+  .app.beach-mode .msg.nora .bubble { background: #fff; border-color: var(--beach-wave); border-left-color: var(--beach-ocean); color: var(--text-dark); }
+  .app.beach-mode .msg.user .bubble { background: linear-gradient(135deg, var(--beach-ocean), var(--beach-wave)); }
+  .app.beach-mode .typing-dots { background: #fff; border-color: var(--beach-wave); border-left-color: var(--beach-ocean); }
+  .app.beach-mode .dot { background: var(--beach-ocean); }
+  .app.beach-mode .bubble.streaming::after { color: var(--beach-ocean); }
+  .app.beach-mode .input-section { background: var(--beach-sand); border-top-color: var(--beach-wave); }
+  .app.beach-mode .input-box { background: #fff; border-color: var(--beach-wave); }
+  .app.beach-mode .input-box:focus { border-color: var(--beach-ocean); }
+  .app.beach-mode .send-btn { background: linear-gradient(135deg, var(--beach-ocean), var(--beach-wave)); border-color: var(--beach-ocean); }
+  .app.beach-mode .mic-btn { border-color: var(--beach-ocean); color: var(--beach-ocean); }
+  .app.beach-mode .mic-btn:hover { background: var(--beach-ocean); color: #fff; }
+  .app.beach-mode .chip { border-color: var(--beach-ocean); color: var(--beach-ocean); background: rgba(0,147,196,0.08); }
+  .app.beach-mode .chip:hover { background: var(--beach-ocean); color: #fff; }
+  .app.beach-mode .status-bar { color: var(--beach-ocean); opacity: .6; }
+  .app.beach-mode .lang-select { border-color: rgba(255,255,255,0.6); }
+  .app.beach-mode .thumb-btn { border-color: var(--beach-wave); }
+  .app.beach-mode .thumb-btn:hover { border-color: var(--beach-ocean); background: rgba(0,147,196,0.1); }
+  .app.beach-mode .messages::-webkit-scrollbar-thumb { background: var(--beach-wave); }
+
+  /* Beach mode toggle button */
+  .beach-toggle {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,0.15); border: 1.5px solid rgba(255,255,255,0.5);
+    color: rgba(255,255,255,0.9); padding: 5px 11px; border-radius: 20px;
+    font-family: 'Poppins', sans-serif; font-size: 0.64rem; font-weight: 700;
+    cursor: pointer; outline: none; text-transform: uppercase; letter-spacing: 1px;
+    transition: all .25s; white-space: nowrap;
+  }
+  .beach-toggle:hover { border-color: var(--beach-sun); color: var(--beach-sun); }
+  .beach-toggle .toggle-track { width: 26px; height: 14px; border-radius: 7px; background: rgba(255,255,255,0.3); position: relative; transition: background .25s; flex-shrink: 0; }
+  .beach-toggle .toggle-knob { position: absolute; top: 2px; left: 2px; width: 10px; height: 10px; border-radius: 50%; background: #fff; transition: left .25s; }
+  .beach-toggle.on .toggle-track { background: var(--beach-sun); }
+  .beach-toggle.on .toggle-knob { left: 14px; }
+  .beach-toggle.on { border-color: var(--beach-sun); color: var(--beach-sun); }
+  .beach-badge { display: inline-block; background: var(--beach-sun); color: #1a2e3b; font-size: 0.45rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; padding: 1px 5px; border-radius: 6px; margin-left: 4px; vertical-align: middle; }
+
+  /* ─── HEADER ─── */
+  .header {
+    flex-shrink: 0;
+    background: linear-gradient(135deg, var(--pv-navy) 0%, var(--pv-blue) 100%);
+    border-bottom: 3px solid var(--pv-sky);
+    padding: 0 24px; display: flex; align-items: center; justify-content: space-between;
+    height: 72px; position: relative; z-index: 20; transition: background .5s, border-color .5s;
+  }
+  .header-brand { display: flex; align-items: center; gap: 12px; }
+  .pv-logo { width: 48px; height: 48px; flex-shrink: 0; }
+  .header-text h1 { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 1.15rem; text-transform: uppercase; letter-spacing: 5px; color: #fff; line-height: 1; }
+  .header-text .tagline { font-family: 'Playfair Display', serif; font-style: italic; font-size: 0.72rem; color: var(--pv-light-blue); letter-spacing: 0.5px; margin-top: 2px; display: block; transition: color .5s; }
+  .header-text .sub { font-size: 0.55rem; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; color: rgba(255,255,255,0.55); margin-top: 1px; display: block; }
+  .header-right { display: flex; align-items: center; gap: 8px; }
+  .lang-select { background: rgba(255,255,255,0.15); border: 1.5px solid rgba(255,255,255,0.4); color: #fff; padding: 5px 8px; border-radius: 20px; font-family: 'Poppins', sans-serif; font-size: 0.68rem; font-weight: 700; cursor: pointer; outline: none; text-transform: uppercase; letter-spacing: 1px; transition: background .18s; }
+  .lang-select:hover { background: rgba(255,255,255,0.25); }
+  .lang-select option { background: var(--pv-navy); color: #fff; }
+
+  /* ─── WAVE BAND ─── */
+  .wave-band { flex-shrink: 0; height: 20px; overflow: hidden; background: var(--pv-cream); transition: background .5s; }
+  .wave-band svg { display: block; width: 100%; height: 100%; }
+
+  /* ─── CHAT BODY ─── */
+  .chat-body { flex: 1; overflow: hidden; display: flex; flex-direction: column; position: relative; background: var(--pv-cream); transition: background .5s; }
+  .chat-body::before { content: '🌿'; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 180px; opacity: 0.03; pointer-events: none; z-index: 0; transition: content .5s; }
+  .messages { flex: 1; overflow-y: auto; padding: 20px 20px 8px; display: flex; flex-direction: column; gap: 4px; position: relative; z-index: 1; scroll-behavior: smooth; }
+  .messages::-webkit-scrollbar { width: 3px; }
+  .messages::-webkit-scrollbar-thumb { background: var(--pv-light-blue); border-radius: 2px; }
+
+  /* ─── MESSAGES ─── */
+  .msg { display: flex; align-items: flex-start; gap: 10px; animation: msgIn .28s cubic-bezier(.34,1.56,.64,1); }
+  .msg.user { flex-direction: row-reverse; }
+  @keyframes msgIn { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: none; } }
+  .msg-avatar { width: 32px; height: 32px; flex-shrink: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+  .msg.user .msg-avatar { background: var(--pv-blue); color: #fff; font-size: 14px; }
+  .bubble-wrap { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+  .msg.user .bubble-wrap { align-items: flex-end; }
+  .bubble { max-width: min(85%, 820px); width: fit-content; padding: 11px 16px; line-height: 1.62; font-size: 0.875rem; white-space: pre-wrap; word-break: break-word; transition: background .5s, border-color .5s, color .5s; }
+  .msg.nora .bubble { background: var(--pv-white); border: 1px solid var(--pv-light-blue); border-left: 4px solid var(--pv-green); border-radius: 0 16px 16px 16px; color: var(--text-dark); box-shadow: 1px 2px 12px rgba(27,58,92,0.08); }
+  .msg.user .bubble { background: linear-gradient(135deg, var(--pv-navy), var(--pv-blue)); border-radius: 16px 0 16px 16px; color: #fff; box-shadow: 1px 2px 10px rgba(27,58,92,0.2); }
+  .bubble.streaming::after { content: '▋'; display: inline-block; animation: blink .7s step-end infinite; color: var(--pv-green); margin-left: 2px; font-size: .8em; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+  .msg-meta { display: flex; align-items: center; gap: 8px; margin-top: 4px; padding: 0 2px; }
+  .msg.user .msg-meta { flex-direction: row-reverse; }
+  .msg-time { font-size: 0.55rem; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+
+  /* ─── THUMBS ─── */
+  .feedback-btns { display: flex; gap: 4px; }
+  .thumb-btn { background: transparent; border: 1px solid var(--pv-light-blue); border-radius: 20px; width: 26px; height: 22px; cursor: pointer; font-size: 11px; display: flex; align-items: center; justify-content: center; transition: all .15s; line-height: 1; padding: 0; color: var(--text-light); }
+  .thumb-btn:hover { border-color: var(--pv-green); background: rgba(76,175,125,0.1); }
+  .thumb-btn.active-up { background: rgba(76,175,125,0.2); border-color: var(--pv-green); color: var(--pv-green); }
+  .thumb-btn.active-down { background: rgba(240,112,112,0.15); border-color: var(--salmon); color: #c0392b; }
+  .msg.user .feedback-btns { display: none; }
+
+  /* ─── TYPING ─── */
+  .typing-indicator { display: none; align-items: flex-start; gap: 10px; padding: 0 20px 6px; }
+  .typing-indicator.show { display: flex; }
+  .typing-dots { background: var(--pv-white); border: 1px solid var(--pv-light-blue); border-left: 4px solid var(--pv-green); border-radius: 0 16px 16px 16px; padding: 10px 14px; display: flex; gap: 5px; align-items: center; transition: background .5s, border-color .5s; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--pv-green); animation: dotBounce 1.2s ease-in-out infinite; }
+  .dot:nth-child(2) { animation-delay: .2s; }
+  .dot:nth-child(3) { animation-delay: .4s; }
+  @keyframes dotBounce { 0%,60%,100%{transform:translateY(0);opacity:.4} 30%{transform:translateY(-5px);opacity:1} }
+
+  /* ─── INPUT SECTION ─── */
+  .input-section { flex-shrink: 0; background: var(--pv-cream); border-top: 2px solid var(--pv-light-blue); padding: 8px 20px 14px; transition: background .5s, border-color .5s; }
+  .quick-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .chip { background: var(--pv-mint); border: 1.5px solid var(--pv-green); color: var(--pv-navy); border-radius: 20px; padding: 3px 12px; font-size: 0.66rem; font-family: 'Poppins', sans-serif; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: all .15s; white-space: nowrap; }
+  .chip:hover { background: var(--pv-green); color: #fff; border-color: var(--pv-green); }
+  .waveform { display: none; align-items: center; justify-content: center; gap: 3px; height: 18px; margin-bottom: 5px; }
+  .waveform.show { display: flex; }
+  .wave-bar { width: 3px; height: 6px; background: var(--pv-green); border-radius: 2px; animation: wvBar .6s ease-in-out infinite; }
+  .wave-bar:nth-child(2) { animation-delay: .1s; }
+  .wave-bar:nth-child(3) { animation-delay: .2s; height: 16px; }
+  .wave-bar:nth-child(4) { animation-delay: .15s; }
+  .wave-bar:nth-child(5) { animation-delay: .05s; }
+  @keyframes wvBar { 0%,100%{height:4px;opacity:.4} 50%{height:17px;opacity:1} }
+
+  /* ─── MIC STATUS ─── */
+  .mic-status { text-align: center; font-size: 0.65rem; color: var(--pv-green); font-weight: 600; min-height: 16px; margin-bottom: 4px; display: none; }
+  .mic-status.show { display: block; }
+  .mic-status.error { color: var(--salmon); }
+
+  .input-row { display: flex; gap: 7px; align-items: flex-end; }
+  .mic-btn, .send-btn { width: 42px; height: 42px; border-radius: 21px; border: 1.5px solid; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; transition: all .15s; outline: none; background: transparent; }
+  .mic-btn { border-color: var(--pv-blue); color: var(--pv-blue); }
+  .mic-btn:hover { background: var(--pv-blue); color: #fff; }
+  .mic-btn.recording { border-color: var(--salmon); color: var(--salmon); animation: recPulse 1s ease-in-out infinite; }
+  .mic-btn:disabled { opacity: .4; cursor: not-allowed; }
+  @keyframes recPulse { 0%,100%{box-shadow:0 0 0 0 rgba(240,112,112,.4)} 50%{box-shadow:0 0 0 6px rgba(240,112,112,0)} }
+  .input-box { flex: 1; min-height: 42px; max-height: 120px; background: var(--pv-white); border: 1.5px solid var(--pv-light-blue); border-radius: 21px; padding: 9px 18px; color: var(--text-dark); font-family: 'Poppins', sans-serif; font-size: .875rem; resize: none; outline: none; transition: border-color .2s, background .5s; line-height: 1.5; overflow-y: auto; word-break: break-word; }
+  .input-box::placeholder { color: var(--text-light); }
+  .input-box:focus { border-color: var(--pv-green); }
+  .send-btn { background: linear-gradient(135deg, var(--pv-navy), var(--pv-blue)); border-color: var(--pv-blue); color: #fff; font-size: 14px; }
+  .send-btn:hover { background: linear-gradient(135deg, var(--pv-blue), var(--pv-sky)); }
+  .send-btn:active { transform: scale(.95); }
+  .status-bar { text-align: center; font-size: 0.56rem; color: var(--text-light); margin-top: 6px; text-transform: uppercase; letter-spacing: 2px; font-weight: 600; transition: color .5s; }
+
+  /* ═══ ADMIN OVERLAY ═══ */
+  .overlay { display: none; position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.55); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
+  .overlay.show { display: flex; }
+  .pw-modal { background: var(--pv-white); border: 2px solid var(--pv-light-blue); border-radius: 20px; padding: 36px 40px; width: 340px; text-align: center; box-shadow: 0 16px 48px rgba(27,58,92,0.2); }
+  .pw-modal h2 { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 4px; color: var(--pv-navy); margin-bottom: 6px; }
+  .pw-modal p { font-size: 0.73rem; color: var(--text-light); margin-bottom: 20px; }
+  .pw-input { width: 100%; border: 1.5px solid var(--pv-light-blue); border-radius: 20px; padding: 9px 18px; font-family: 'Poppins', sans-serif; font-size: .875rem; background: var(--pv-cream); outline: none; color: var(--text-dark); letter-spacing: 3px; text-align: center; margin-bottom: 14px; transition: border-color .2s; }
+  .pw-input:focus { border-color: var(--pv-green); }
+  .pw-error { font-size: 0.7rem; color: var(--salmon); min-height: 16px; margin-bottom: 8px; font-weight: 600; }
+  .pw-submit { background: linear-gradient(135deg, var(--pv-navy), var(--pv-blue)); color: #fff; border: none; border-radius: 20px; padding: 9px 28px; font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 2px; cursor: pointer; transition: opacity .18s; margin-right: 8px; }
+  .pw-submit:hover { opacity: .88; }
+  .pw-cancel { background: transparent; color: var(--text-light); border: 1.5px solid var(--pv-light-blue); border-radius: 20px; padding: 8px 20px; font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 2px; cursor: pointer; transition: all .18s; }
+  .pw-cancel:hover { border-color: var(--pv-green); color: var(--pv-green); }
+  .admin-panel { background: var(--pv-cream); border-radius: 20px; border: 2px solid var(--pv-light-blue); width: min(95vw,1000px); height: min(88vh,760px); display: flex; flex-direction: column; box-shadow: 0 16px 48px rgba(27,58,92,0.2); overflow: hidden; }
+  .admin-header { background: linear-gradient(135deg, var(--pv-navy), var(--pv-blue)); color: #fff; padding: 14px 22px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .admin-header h2 { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 4px; }
+  .admin-header p { font-size: 0.68rem; opacity: 0.75; margin-top: 1px; letter-spacing: 1px; }
+  .admin-close { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff; border-radius: 20px; padding: 6px 14px; cursor: pointer; font-family: 'Poppins', sans-serif; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; transition: background .18s; }
+  .admin-close:hover { background: rgba(255,255,255,0.25); }
+  .admin-stats { display: flex; flex-shrink: 0; border-bottom: 1.5px solid var(--pv-light-blue); }
+  .stat-card { flex: 1; padding: 12px 18px; text-align: center; border-right: 1px solid var(--pv-light-blue); }
+  .stat-card:last-child { border-right: none; }
+  .stat-num { font-size: 1.5rem; font-weight: 700; color: var(--pv-navy); line-height: 1; }
+  .stat-label { font-size: 0.58rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-light); margin-top: 2px; font-weight: 600; }
+  .admin-filters { padding: 10px 18px; border-bottom: 1px solid var(--pv-light-blue); flex-shrink: 0; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .filter-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-light); }
+  .filter-btn { background: transparent; border: 1.5px solid var(--pv-light-blue); border-radius: 20px; padding: 3px 12px; font-family: 'Poppins', sans-serif; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; color: var(--text-mid); transition: all .15s; }
+  .filter-btn:hover, .filter-btn.active { background: var(--pv-green); border-color: var(--pv-green); color: #fff; }
+  .admin-search { margin-left: auto; border: 1.5px solid var(--pv-light-blue); border-radius: 20px; padding: 4px 14px; font-family: 'Poppins', sans-serif; font-size: 0.72rem; background: var(--pv-white); outline: none; color: var(--text-dark); width: 180px; transition: border-color .2s; }
+  .admin-search:focus { border-color: var(--pv-green); }
+  .admin-log { flex: 1; overflow-y: auto; padding: 12px 18px; display: flex; flex-direction: column; gap: 10px; }
+  .admin-log::-webkit-scrollbar { width: 3px; }
+  .admin-log::-webkit-scrollbar-thumb { background: var(--pv-light-blue); border-radius: 2px; }
+  .log-entry { background: var(--pv-white); border: 1px solid var(--pv-light-blue); border-radius: 12px; overflow: hidden; transition: box-shadow .15s; }
+  .log-entry:hover { box-shadow: 0 2px 12px rgba(27,58,92,0.1); }
+  .log-header { display: flex; align-items: center; gap: 10px; padding: 8px 14px; background: rgba(168,212,240,0.15); border-bottom: 1px solid rgba(168,212,240,0.4); cursor: pointer; }
+  .log-index { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #fff; background: var(--pv-blue); border-radius: 10px; padding: 1px 8px; flex-shrink: 0; }
+  .log-q-preview { flex: 1; font-size: 0.78rem; font-weight: 600; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .log-time-stamp { font-size: 0.6rem; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; flex-shrink: 0; }
+  .feedback-badge { font-size: 0.7rem; flex-shrink: 0; width: 22px; text-align: center; }
+  .log-chevron { font-size: 0.7rem; color: var(--text-light); flex-shrink: 0; transition: transform .2s; }
+  .log-entry.open .log-chevron { transform: rotate(180deg); }
+  .log-body { display: none; padding: 12px 14px; }
+  .log-entry.open .log-body { display: block; }
+  .log-section-label { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-light); margin-bottom: 4px; }
+  .log-q-text { background: rgba(91,163,217,0.08); border-left: 3px solid var(--pv-sky); padding: 8px 12px; font-size: 0.8rem; color: var(--text-dark); border-radius: 0 8px 8px 0; margin-bottom: 10px; white-space: pre-wrap; word-break: break-word; }
+  .log-a-text { background: rgba(76,175,125,0.06); border-left: 3px solid var(--pv-green); padding: 8px 12px; font-size: 0.8rem; color: var(--text-dark); border-radius: 0 8px 8px 0; margin-bottom: 10px; white-space: pre-wrap; word-break: break-word; max-height: 160px; overflow-y: auto; }
+  .log-feedback-row { display: flex; align-items: center; gap: 8px; font-size: 0.72rem; }
+  .feedback-positive { color: var(--pv-green); font-weight: 700; }
+  .feedback-negative { color: var(--salmon); font-weight: 700; }
+  .feedback-none { color: var(--text-light); font-style: italic; }
+  .admin-empty { text-align: center; padding: 40px 20px; color: var(--text-light); font-size: 0.82rem; font-style: italic; }
+
+  @media (max-width: 600px) {
+    .header { padding: 0 12px; height: 64px; }
+    .messages { padding: 12px 12px 6px; }
+    .quick-chips { display: none; }
+    .input-section { padding: 7px 12px 12px; }
+    .bubble { max-width: 92%; font-size: .82rem; }
+    .pv-logo { width: 40px; height: 40px; }
+    .admin-panel { width: 100vw; height: 100vh; border-radius: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+<!-- ═══ HEADER ═══ -->
+<header class="header">
+  <div class="header-brand">
+    <svg class="pv-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-label="Pura Vida Miami">
+      <circle cx="50" cy="50" r="46" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+      <circle cx="50" cy="50" r="18" fill="#F6D003"/>
+      <line x1="50" y1="6"  x2="50" y2="18" stroke="#F6D003" stroke-width="3" stroke-linecap="round"/>
+      <line x1="50" y1="82" x2="50" y2="94" stroke="#F6D003" stroke-width="3" stroke-linecap="round"/>
+      <line x1="6"  y1="50" x2="18" y2="50" stroke="#F6D003" stroke-width="3" stroke-linecap="round"/>
+      <line x1="82" y1="50" x2="94" y2="50" stroke="#F6D003" stroke-width="3" stroke-linecap="round"/>
+      <line x1="18" y1="18" x2="26" y2="26" stroke="#F6D003" stroke-width="3" stroke-linecap="round"/>
+      <line x1="74" y1="74" x2="82" y2="82" stroke="#F6D003" stroke-width="3" stroke-linecap="round"/>
+      <line x1="82" y1="18" x2="74" y2="26" stroke="#F6D003" stroke-width="3" stroke-linecap="round"/>
+      <line x1="18" y1="82" x2="26" y2="74" stroke="#F6D003" stroke-width="3" stroke-linecap="round"/>
+      <path d="M50 50 Q65 30 72 20 Q58 22 50 50Z" fill="#4CAF7D"/>
+      <path d="M50 50 Q35 30 28 20 Q42 22 50 50Z" fill="#4CAF7D" opacity=".8"/>
+    </svg>
+    <div class="header-text">
+      <h1 id="headerTitle">Vida</h1>
+      <span class="tagline" id="headerTagline">Health is Happiness 🌿</span>
+      <span class="sub">Pura Vida Miami · AI Assistant</span>
+    </div>
+  </div>
+  <div class="header-right">
+    <select class="lang-select" id="langSelect" onchange="setLanguage(this.value)">
+      <option value="en">🇺🇸 EN</option>
+      <option value="es">🇪🇸 ES</option>
+      <option value="fr">🇫🇷 FR</option>
+      <option value="de">🇩🇪 DE</option>
+      <option value="it">🇮🇹 IT</option>
+      <option value="pt">🇧🇷 PT</option>
+      <option value="zh">🇨🇳 中文</option>
+    </select>
+    <button class="beach-toggle" id="beachToggle" onclick="toggleBeachMode()" title="Toggle Beach Mode">
+      <span>🌴 Beach</span>
+      <div class="toggle-track"><div class="toggle-knob"></div></div>
+    </button>
+  </div>
+</header>
+
+<!-- Tropical gradient wave stripe -->
+<div class="wave-band">
+  <svg viewBox="0 0 1440 20" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#1B3A5C"/><stop offset="50%" style="stop-color:#2E6DA4"/><stop offset="100%" style="stop-color:#5BA3D9"/></linearGradient></defs>
+    <rect width="1440" height="20" fill="url(#grad)"/>
+    <path d="M0 10 Q90 2 180 10 Q270 18 360 10 Q450 2 540 10 Q630 18 720 10 Q810 2 900 10 Q990 18 1080 10 Q1170 2 1260 10 Q1350 18 1440 10" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" fill="none"/>
+    <path d="M0 14 Q90 6 180 14 Q270 22 360 14 Q450 6 540 14 Q630 22 720 14 Q810 6 900 14 Q990 22 1080 14 Q1170 6 1260 14 Q1350 22 1440 14" stroke="rgba(76,175,125,0.6)" stroke-width="1.5" fill="none"/>
+  </svg>
+</div>
+
+<!-- ═══ CHAT ═══ -->
+<div class="chat-body">
+  <div class="messages" id="messages"></div>
+  <div class="typing-indicator" id="typingIndicator">
+    <div class="msg-avatar" style="background:linear-gradient(135deg,#1B3A5C,#2E6DA4);border-radius:50%;">
+      <span style="font-size:16px;" id="typingIcon">🌿</span>
+    </div>
+    <div class="typing-dots">
+      <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ INPUT ═══ -->
+<div class="input-section">
+  <div class="quick-chips" id="quickChips"></div>
+  <div class="mic-status" id="micStatus"></div>
+  <div class="waveform" id="waveform">
+    <div class="wave-bar"></div><div class="wave-bar"></div>
+    <div class="wave-bar"></div><div class="wave-bar"></div>
+    <div class="wave-bar"></div>
+  </div>
+  <div class="input-row">
+    <textarea class="input-box" id="inputBox" placeholder="Ask Vida anything about Pura Vida Miami…" rows="1"
+      onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+    <button class="mic-btn" id="micBtn" onclick="toggleMic()" title="Speak to Vida">🎙️</button>
+    <button class="send-btn" onclick="sendMessage()">➤</button>
+  </div>
+  <div class="status-bar" id="statusBar">Pura Vida Miami · Health is Happiness · puravidamiami.com</div>
+</div>
+
+<!-- ═══ ADMIN PASSWORD ═══ -->
+<div class="overlay" id="pwOverlay">
+  <div class="pw-modal">
+    <div style="font-size:40px;margin-bottom:12px;">🌿</div>
+    <h2>Admin Access</h2>
+    <p>Enter your admin password to continue</p>
+    <input class="pw-input" type="password" id="pwInput" placeholder="••••••" onkeydown="if(event.key==='Enter')checkPassword()">
+    <div class="pw-error" id="pwError"></div>
+    <button class="pw-submit" onclick="checkPassword()">Enter</button>
+    <button class="pw-cancel" onclick="closeAdminLogin()">Cancel</button>
+  </div>
+</div>
+
+<!-- ═══ ADMIN PANEL ═══ -->
+<div class="overlay" id="adminOverlay">
+  <div class="admin-panel">
+    <div class="admin-header">
+      <div>
+        <h2>Admin Dashboard</h2>
+        <p>Pura Vida Miami · Vida AI Assistant</p>
+      </div>
+      <button class="admin-close" onclick="closeAdmin()">✕ Close</button>
+    </div>
+    <div class="admin-stats">
+      <div class="stat-card"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Total Exchanges</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-pos" style="color:var(--pv-green)">0</div><div class="stat-label">👍 Positive</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-neg" style="color:var(--salmon)">0</div><div class="stat-label">👎 Negative</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-none" style="color:var(--text-light)">0</div><div class="stat-label">No Feedback</div></div>
+    </div>
+    <div class="admin-filters">
+      <span class="filter-label">Filter:</span>
+      <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+      <button class="filter-btn" onclick="setFilter('positive',this)">👍 Positive</button>
+      <button class="filter-btn" onclick="setFilter('negative',this)">👎 Negative</button>
+      <button class="filter-btn" onclick="setFilter('none',this)">No Feedback</button>
+      <input class="admin-search" type="text" id="adminSearch" placeholder="Search conversations…" oninput="renderAdminLog()">
+    </div>
+    <div class="admin-log" id="adminLog"></div>
+  </div>
+</div>
+
+</div><!-- .app -->
+<script>
+// ── STATE ──
+let currentLang = 'en';
+let isRecording = false, recognition = null;
+let conversationHistory = [], exchangeLog = [], adminFilter = 'all';
+let beachMode = false, isStreaming = false;
+
+// ── LANGUAGE CONFIG ──
+const LANG_CONFIG = {
+  en: { placeholder:"Ask Vida anything about Pura Vida Miami…", status:"Pura Vida Miami · Health is Happiness · puravidamiami.com", chips:["🥗 Our Menu","📍 Locations","⭐ Rewards","🥤 Smoothies & Juices","🥑 Bowls","🚚 Catering"], systemLang:"Respond in English." },
+  es: { placeholder:"Pregúntale a Vida sobre Pura Vida Miami…", status:"Pura Vida Miami · La Salud es Felicidad", chips:["🥗 Nuestro Menú","📍 Ubicaciones","⭐ Recompensas","🥤 Batidos","🥑 Bowls","🚚 Catering"], systemLang:"Responde siempre en español." },
+  fr: { placeholder:"Demandez à Vida tout sur Pura Vida Miami…", status:"Pura Vida Miami · La Santé c'est le Bonheur", chips:["🥗 Notre Menu","📍 Adresses","⭐ Récompenses","🥤 Smoothies","🥑 Bowls","🚚 Traiteur"], systemLang:"Réponds toujours en français." },
+  de: { placeholder:"Fragen Sie Vida über Pura Vida Miami…", status:"Pura Vida Miami · Gesundheit ist Glück", chips:["🥗 Unser Menü","📍 Standorte","⭐ Belohnungen","🥤 Smoothies","🥑 Bowls","🚚 Catering"], systemLang:"Antworte immer auf Deutsch." },
+  it: { placeholder:"Chiedi a Vida di Pura Vida Miami…", status:"Pura Vida Miami · La Salute è Felicità", chips:["🥗 Il Nostro Menu","📍 Sedi","⭐ Premi","🥤 Smoothies","🥑 Bowls","🚚 Catering"], systemLang:"Rispondi sempre in italiano." },
+  pt: { placeholder:"Pergunte à Vida sobre Pura Vida Miami…", status:"Pura Vida Miami · Saúde é Felicidade", chips:["🥗 Nosso Menu","📍 Localizações","⭐ Recompensas","🥤 Smoothies","🥑 Bowls","🚚 Catering"], systemLang:"Responda sempre em português." },
+  zh: { placeholder:"向 Vida 询问 Pura Vida Miami 的任何问题…", status:"Pura Vida Miami · 健康就是幸福", chips:["🥗 我们的菜单","📍 地点","⭐ 积分奖励","🥤 果昔","🥑 碗装菜","🚚 餐饮服务"], systemLang:"请始终用中文回答。" }
+};
+
+// ── SYSTEM PROMPT ──
+function buildSystemPrompt() {
+  const beachInstructions = beachMode ? `
+BEACH MODE IS ACTIVE 🌴: You are now Vida in full Miami beach local mode! Respond with laid-back, sun-soaked surfer/beach vibes throughout. Use phrases like "no worries", "totally", "for sure", "dude", "stoked", "rad", "gnarly", "catching waves", "soaking up the sun", "good vibes only", "the vibe is immaculate", "lowkey obsessed", "literally so good", "beachy keen". Be super chill and relaxed, like you just came off the beach and grabbed a smoothie. Still give accurate info but deliver it with maximum Miami beach energy! 🌊☀️🤙
+` : '';
+
+  return `You are Vida, the friendly AI assistant for Pura Vida Miami — South Florida's premier health and wellness lifestyle brand.
+${beachInstructions}
+YOUR PERSONALITY: Warm, positive, health-conscious and genuinely passionate about wellness. Embody the "Pura Vida" spirit — pure life, good vibes, healthy living. Use phrases like "another day in paradise" and "health is happiness". Use emojis naturally 🌿🥗🥤.
+
+ABOUT PURA VIDA MIAMI:
+- Founded 2012 by Omer & Jen Horev in South Florida
+- Mission: Establish a standard of health & wellness in the community by providing access to healthy and nutritious food, always
+- Proud to cook WITHOUT seed oils
+- Premium whole ingredients — vegan and gluten-free options available
+- Sustainability: composting food waste, donating soil to local farmers, quarterly beach cleanups
+- Partnerships: Inter Miami CF (official health foods partner) & University of Miami
+
+MENU CATEGORIES:
+All Day Breakfast · Coffee & Tea · Bowls · Salads · Sandwiches · Plates · Bakery · Wraps · Wellness Shots · Cold Pressed Juices · Acai Bowls · Smoothies · Snacks · Kids Menu
+
+SPOTLIGHT ITEMS: Watermelon Mint Salad 🍉 · Iced Mango Matcha 🍵 · Cymbiotika Creatine Smoothie 💪 · Chopped Chicken Caesar Wrap
+
+ALLERGY INFO: Vegan and gluten-free options available. Contains peanuts, tree nuts, milk, eggs and wheat. Cannot guarantee cross-contamination free. Full info: puravidamiami.com/nutrition
+
+LOCATIONS — 50+ locations:
+FLORIDA: South Beach, Edgewater, Design District, West Ave, West Palm Beach, Aventura Park Square, Bay Harbor, Society Las Olas, Brickell Millecento, Sunset Harbour, Miracle Mile, South Miami, Doral, Miami Shores, West Boca, Wellington, Flamingo Point, Brickell 701, River Market, UM, Dadeland Mall, Jupiter, North Miami Prestige, Dania Pointe, Ocean Blvd Delray, UTC Sarasota, South Harbor FTL, Collins Ave, Fisher Island, Sole Mia, Coconut Grove, Gelato by PVM, Pembroke Pines, Mercato Naples, Aventura Abbey, Key Biscayne, The Landings Sarasota, Palm Beach Gardens, Boca Park Place, Nomad
+NEW YORK: Williamsburg Kent Ave, Bleecker Street, Nolita, Bryant Park, Upper East Side, Dumbo
+NEW JERSEY: Short Hills Mall · MARYLAND: Cabin John · VIRGINIA: Mosaic District (coming soon)
+CALIFORNIA: Beverly Hills, Malibu, South Coast Plaza, Sunset Blvd (coming soon)
+
+REWARDS (PV Points via app — download at puravidamiami.com/mobile-app):
+100pts = Coffee or Matcha ☕ · 200pts = Juice or Kombucha 🥤 · 300pts = Salad/Wrap/Sandwich 🥗 · 400pts = Bowl or Plate 🥑 · 500pts = Merchandise 👕
+Benefits: Skip the line, earn points every order, exclusive promos, in-app live chat
+
+ORDERING: order.puravidamiami.com · Uber Eats · No reservations (first come first served) · Indoor & outdoor dining at most locations · Gift cards: puravidamiami.com/gift-cards
+
+CATERING: Pickup & delivery · 24 HOURS ADVANCE NOTICE required · Non-refundable · Order: puravidacatering.olo.com
+FL: Catering.FL@puravidamiami.com · NY: Catering.NYC@puravidamiami.com · DMV: catering.dmv@puravidamiami.com · CA: Catering.CA@puravidamiami.com
+Private dining/events: puravidamiami.com/private-events
+
+SUPPORT: orders@puravidamiami.com · In-app live chat · Cannot cancel orders once placed · Uber Eats issues go through Uber Eats support
+
+Always direct customers to puravidamiami.com for current menu, hours and pricing. Use web search for latest info.
+${LANG_CONFIG[currentLang].systemLang}`;
+}
+
+// ── BEACH MODE ──
+function toggleBeachMode() {
+  beachMode = !beachMode;
+  const app = document.getElementById('app');
+  const btn = document.getElementById('beachToggle');
+  const title = document.getElementById('headerTitle');
+  const tag = document.getElementById('headerTagline');
+  const sbar = document.getElementById('statusBar');
+  const typingIcon = document.getElementById('typingIcon');
+
+  app.classList.toggle('beach-mode', beachMode);
+  btn.classList.toggle('on', beachMode);
+
+  if (beachMode) {
+    title.innerHTML = 'Vida <span class="beach-badge">🌴 Beach</span>';
+    tag.textContent = 'Good Vibes Only ☀️';
+    sbar.textContent = 'Pura Vida Miami · Beach Mode · Catch Those Waves 🌊';
+    typingIcon.textContent = '🌴';
+    addMessage('nora', "Heyyy, welcome to the good life! 🌴☀️ I'm Vida and the vibes are totally immaculate right now! Whether you're looking for something to fuel your beach day, need to find the closest PV spot, or just wanna know what's poppin' on the menu — I got you! No worries, no stress, just good food and good energy. What can I help you with today, dude? 🤙🥗");
+  } else {
+    title.textContent = 'Vida';
+    tag.textContent = 'Health is Happiness 🌿';
+    sbar.textContent = LANG_CONFIG[currentLang].status;
+    typingIcon.textContent = '🌿';
+    addMessage('nora', "Welcome back to paradise! 🌿 Beach Mode off — back to being your calm, health-focused Pura Vida guide. Health is happiness, always! How can I help you today?");
+  }
+}
+
+// ── HELPERS ──
+function formatTime() { return new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
+function formatDateTime() {
+  const d = new Date();
+  return d.toLocaleDateString([], {month:'short', day:'numeric'}) + ' ' + d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+}
+
+function getAvatarEmoji() { return beachMode ? '🌴' : '🌿'; }
+
+function addMessage(role, text, exchangeId) {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  if (exchangeId) div.dataset.exchangeId = exchangeId;
+
+  const av = document.createElement('div');
+  av.className = 'msg-avatar';
+  if (role === 'nora') {
+    av.style.cssText = 'background:linear-gradient(135deg,#1B3A5C,#2E6DA4);border-radius:50%;';
+    av.innerHTML = `<span style="font-size:16px;">${getAvatarEmoji()}</span>`;
+  } else {
+    av.style.cssText = 'background:var(--pv-blue);border-radius:50%;color:#fff;font-size:14px;';
+    av.textContent = '👤';
+  }
+
+  const wrap = document.createElement('div');
+  wrap.className = 'bubble-wrap';
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.textContent = text;
+
+  const meta = document.createElement('div');
+  meta.className = 'msg-meta';
+  const time = document.createElement('div');
+  time.className = 'msg-time';
+  time.textContent = formatTime();
+  meta.appendChild(time);
+
+  if (role === 'nora' && exchangeId) {
+    const fb = document.createElement('div');
+    fb.className = 'feedback-btns';
+    const up = document.createElement('button'); up.className='thumb-btn'; up.textContent='👍'; up.title='Helpful';
+    const dn = document.createElement('button'); dn.className='thumb-btn'; dn.textContent='👎'; dn.title='Not helpful';
+    up.onclick = () => setFeedback(exchangeId, 'positive', up, dn);
+    dn.onclick = () => setFeedback(exchangeId, 'negative', up, dn);
+    fb.append(up, dn);
+    meta.appendChild(fb);
+  }
+
+  wrap.append(bubble, meta);
+  div.append(av, wrap);
+  msgs.appendChild(div);
+  scrollToBottom();
+  return bubble;
+}
+
+function createStreamingBubble(exchangeId) {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg nora';
+  div.dataset.exchangeId = exchangeId;
+
+  const av = document.createElement('div');
+  av.className = 'msg-avatar';
+  av.style.cssText = 'background:linear-gradient(135deg,#1B3A5C,#2E6DA4);border-radius:50%;';
+  av.innerHTML = `<span style="font-size:16px;">${getAvatarEmoji()}</span>`;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'bubble-wrap';
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble streaming';
+
+  const meta = document.createElement('div');
+  meta.className = 'msg-meta';
+  const time = document.createElement('div');
+  time.className = 'msg-time';
+  time.textContent = formatTime();
+  meta.appendChild(time);
+
+  const fb = document.createElement('div');
+  fb.className = 'feedback-btns';
+  fb.style.display = 'none';
+  const up = document.createElement('button'); up.className='thumb-btn'; up.textContent='👍';
+  const dn = document.createElement('button'); dn.className='thumb-btn'; dn.textContent='👎';
+  up.onclick = () => setFeedback(exchangeId, 'positive', up, dn);
+  dn.onclick = () => setFeedback(exchangeId, 'negative', up, dn);
+  fb.append(up, dn);
+  meta.appendChild(fb);
+
+  wrap.append(bubble, meta);
+  div.append(av, wrap);
+  msgs.appendChild(div);
+  scrollToBottom();
+  return { bubble, fbBtns: fb };
+}
+
+function finalizeStreamingBubble(bubble, fbBtns) {
+  bubble.classList.remove('streaming');
+  fbBtns.style.display = 'flex';
+}
+
+function setFeedback(exchangeId, type, upBtn, downBtn) {
+  const entry = exchangeLog.find(e => e.id === exchangeId);
+  if (!entry) return;
+  if (entry.feedback === type) {
+    entry.feedback = 'none';
+    upBtn.classList.remove('active-up');
+    downBtn.classList.remove('active-down');
+    return;
+  }
+  entry.feedback = type;
+  upBtn.classList.toggle('active-up', type === 'positive');
+  downBtn.classList.toggle('active-down', type === 'negative');
+}
+
+function scrollToBottom() { const m = document.getElementById('messages'); m.scrollTop = m.scrollHeight; }
+function showTyping(show) {
+  document.getElementById('typingIndicator').className = 'typing-indicator' + (show ? ' show' : '');
+  if (show) scrollToBottom();
+}
+
+function showMicStatus(msg, isError) {
+  const el = document.getElementById('micStatus');
+  el.textContent = msg;
+  el.className = 'mic-status show' + (isError ? ' error' : '');
+  if (!msg) el.className = 'mic-status';
+}
+
+// ── SEND MESSAGE ──
+async function sendMessage() {
+  if (isStreaming) return;
+  const box = document.getElementById('inputBox');
+  const text = box.value.trim();
+  if (!text) return;
+
+  if (text.toLowerCase() === 'admin') { box.value = ''; autoResize(box); openAdminLogin(); return; }
+
+  addMessage('user', text);
+  box.value = ''; autoResize(box);
+  conversationHistory.push({ role: 'user', content: text });
+  document.getElementById('quickChips').style.display = 'none';
+
+  const exchangeId = 'ex_' + Date.now();
+  exchangeLog.push({ id: exchangeId, question: text, answer: '', feedback: 'none', time: formatDateTime() });
+
+  showTyping(true);
+  isStreaming = true;
+  let fullText = '', streamBubble = null, streamFbBtns = null, firstChunk = true;
+
+  try {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5',
+        max_tokens: 1024,
+        stream: true,
+        system: buildSystemPrompt(),
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        messages: conversationHistory
+      })
+    });
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const ds = line.slice(6).trim();
+        if (ds === '[DONE]') continue;
+        let evt; try { evt = JSON.parse(ds); } catch { continue; }
+        if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
+          const chunk = evt.delta.text; if (!chunk) continue;
+          if (firstChunk) {
+            showTyping(false);
+            const els = createStreamingBubble(exchangeId);
+            streamBubble = els.bubble; streamFbBtns = els.fbBtns; firstChunk = false;
+          }
+          fullText += chunk; streamBubble.textContent = fullText; scrollToBottom();
+        }
+      }
+    }
+
+    showTyping(false);
+    if (streamBubble) {
+      finalizeStreamingBubble(streamBubble, streamFbBtns);
+    } else {
+      const fb = beachMode ? "No worries! The waves got a little choppy — try again! 🌊" : "Hmm, something went sideways — let's try that again! 🌿";
+      fullText = fb; addMessage('nora', fb, exchangeId);
+    }
+
+    const entry = exchangeLog.find(e => e.id === exchangeId);
+    if (entry) entry.answer = fullText;
+    conversationHistory.push({ role: 'assistant', content: fullText });
+
+  } catch (err) {
+    showTyping(false);
+    const fb = beachMode ? "Bummer, the connection wiped out! Try again, dude 🌊" : "Something went sideways — let's try that again! 🌿";
+    if (streamBubble) { streamBubble.textContent = fb; finalizeStreamingBubble(streamBubble, streamFbBtns); }
+    else addMessage('nora', fb, exchangeId);
+    const entry = exchangeLog.find(e => e.id === exchangeId);
+    if (entry) entry.answer = fb;
+    console.error(err);
+  } finally {
+    isStreaming = false;
+  }
+}
+
+// ── UI ──
+function handleKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
+function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 120) + 'px'; }
+
+function setLanguage(lang) {
+  currentLang = lang;
+  const c = LANG_CONFIG[lang];
+  document.getElementById('inputBox').placeholder = c.placeholder;
+  if (!beachMode) document.getElementById('statusBar').textContent = c.status;
+  renderChips();
+}
+
+function renderChips() {
+  const c = LANG_CONFIG[currentLang];
+  const el = document.getElementById('quickChips');
+  el.innerHTML = ''; el.style.display = '';
+  c.chips.forEach(label => {
+    const b = document.createElement('button');
+    b.className = 'chip'; b.textContent = label;
+    b.onclick = () => { document.getElementById('inputBox').value = label.replace(/^[^\s]+\s/, ''); sendMessage(); };
+    el.appendChild(b);
+  });
+}
+
+// ── IMPROVED MICROPHONE ──
+function toggleMic() {
+  if (isRecording) { stopRecording(); return; }
+
+  // Check HTTPS — mic requires secure context
+  if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+    showMicStatus('⚠️ Voice requires HTTPS — works after deployment', true);
+    setTimeout(() => showMicStatus(''), 4000);
+    return;
+  }
+
+  // Check browser support
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    showMicStatus('⚠️ Voice not supported — please use Chrome', true);
+    setTimeout(() => showMicStatus(''), 4000);
+    return;
+  }
+
+  // Check microphone permission
+  if (navigator.permissions) {
+    navigator.permissions.query({ name: 'microphone' }).then(result => {
+      if (result.state === 'denied') {
+        showMicStatus('⚠️ Microphone access denied — check browser settings', true);
+        setTimeout(() => showMicStatus(''), 5000);
+      } else {
+        startRecording();
+      }
+    }).catch(() => startRecording()); // If permissions API fails just try anyway
+  } else {
+    startRecording();
+  }
+}
+
+function startRecording() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR();
+
+  const langMap = { en:'en-US', es:'es-ES', fr:'fr-FR', de:'de-DE', it:'it-IT', pt:'pt-BR', zh:'zh-CN' };
+  recognition.lang = langMap[currentLang] || 'en-US';
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 1;
+
+  recognition.onstart = () => {
+    isRecording = true;
+    const btn = document.getElementById('micBtn');
+    btn.classList.add('recording');
+    btn.textContent = '🔴';
+    document.getElementById('waveform').classList.add('show');
+    showMicStatus('🎙️ Listening… speak now');
+  };
+
+  recognition.onresult = (e) => {
+    const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
+    const box = document.getElementById('inputBox');
+    box.value = transcript;
+    autoResize(box);
+    // Show interim results
+    if (!e.results[e.results.length - 1].isFinal) {
+      showMicStatus('🎙️ ' + transcript + '…');
+    }
+  };
+
+  recognition.onend = () => {
+    stopRecording();
+    showMicStatus('');
+    const val = document.getElementById('inputBox').value.trim();
+    if (val) sendMessage();
+  };
+
+  recognition.onerror = (e) => {
+    stopRecording();
+    const errorMessages = {
+      'no-speech':         '⚠️ No speech detected — try again',
+      'audio-capture':     '⚠️ No microphone found',
+      'not-allowed':       '⚠️ Microphone access denied — check browser settings',
+      'network':           '⚠️ Network error — check your connection',
+      'aborted':           '',
+      'service-not-allowed': '⚠️ Voice not allowed — requires HTTPS'
+    };
+    const msg = errorMessages[e.error] || `⚠️ Voice error: ${e.error}`;
+    if (msg) { showMicStatus(msg, true); setTimeout(() => showMicStatus(''), 5000); }
+  };
+
+  try {
+    recognition.start();
+  } catch (err) {
+    stopRecording();
+    showMicStatus('⚠️ Could not start microphone — try again', true);
+    setTimeout(() => showMicStatus(''), 4000);
+  }
+}
+
+function stopRecording() {
+  isRecording = false;
+  const btn = document.getElementById('micBtn');
+  btn.classList.remove('recording');
+  btn.textContent = '🎙️';
+  document.getElementById('waveform').classList.remove('show');
+  if (recognition) { try { recognition.stop(); } catch(e) {} recognition = null; }
+}
+
+// ── ADMIN ──
+const ADMIN_PASSWORD = 'MK';
+function openAdminLogin() {
+  document.getElementById('pwInput').value = '';
+  document.getElementById('pwError').textContent = '';
+  document.getElementById('pwOverlay').classList.add('show');
+  setTimeout(() => document.getElementById('pwInput').focus(), 100);
+}
+function closeAdminLogin() { document.getElementById('pwOverlay').classList.remove('show'); }
+function checkPassword() {
+  if (document.getElementById('pwInput').value === ADMIN_PASSWORD) { closeAdminLogin(); openAdmin(); }
+  else { document.getElementById('pwError').textContent = 'Incorrect password. Please try again.'; document.getElementById('pwInput').value = ''; document.getElementById('pwInput').focus(); }
+}
+function openAdmin() { renderAdminLog(); document.getElementById('adminOverlay').classList.add('show'); }
+function closeAdmin() { document.getElementById('adminOverlay').classList.remove('show'); }
+function setFilter(f, btn) { adminFilter=f; document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); renderAdminLog(); }
+
+function renderAdminLog() {
+  const searchTerm = (document.getElementById('adminSearch')?.value || '').toLowerCase();
+  document.getElementById('stat-total').textContent = exchangeLog.length;
+  document.getElementById('stat-pos').textContent   = exchangeLog.filter(e=>e.feedback==='positive').length;
+  document.getElementById('stat-neg').textContent   = exchangeLog.filter(e=>e.feedback==='negative').length;
+  document.getElementById('stat-none').textContent  = exchangeLog.filter(e=>e.feedback==='none').length;
+
+  let filtered = exchangeLog.filter(e => {
+    if (adminFilter==='positive' && e.feedback!=='positive') return false;
+    if (adminFilter==='negative' && e.feedback!=='negative') return false;
+    if (adminFilter==='none'     && e.feedback!=='none')     return false;
+    if (searchTerm && !e.question.toLowerCase().includes(searchTerm) && !e.answer.toLowerCase().includes(searchTerm)) return false;
+    return true;
+  });
+
+  const logEl = document.getElementById('adminLog');
+  if (!filtered.length) { logEl.innerHTML = `<div class="admin-empty">No exchanges found${searchTerm?' matching "'+searchTerm+'"':''}.</div>`; return; }
+  logEl.innerHTML = '';
+
+  [...filtered].reverse().forEach(entry => {
+    const realIdx = exchangeLog.indexOf(entry) + 1;
+    const fbIcon  = entry.feedback==='positive'?'👍':entry.feedback==='negative'?'👎':'—';
+    const fbClass = entry.feedback==='positive'?'feedback-positive':entry.feedback==='negative'?'feedback-negative':'feedback-none';
+    const fbLabel = entry.feedback==='positive'?'Positive — Customer found this helpful':entry.feedback==='negative'?'Negative — Customer found this unhelpful':'No feedback provided';
+    const card = document.createElement('div');
+    card.className = 'log-entry';
+    card.innerHTML = `
+      <div class="log-header" onclick="toggleLogEntry(this)">
+        <span class="log-index">#${realIdx}</span>
+        <span class="log-q-preview">${escHtml(entry.question)}</span>
+        <span class="log-time-stamp">${entry.time}</span>
+        <span class="feedback-badge">${fbIcon}</span>
+        <span class="log-chevron">▼</span>
+      </div>
+      <div class="log-body">
+        <div class="log-section-label">Customer Question</div>
+        <div class="log-q-text">${escHtml(entry.question)}</div>
+        <div class="log-section-label">Vida's Response</div>
+        <div class="log-a-text">${entry.answer ? escHtml(entry.answer) : '<em>No response recorded</em>'}</div>
+        <div class="log-feedback-row">
+          <span class="log-section-label">Feedback:</span>
+          <span class="${fbClass}">${fbIcon} ${fbLabel}</span>
+        </div>
+      </div>`;
+    logEl.appendChild(card);
+  });
+}
+
+function toggleLogEntry(header) { header.closest('.log-entry').classList.toggle('open'); }
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+// ── INIT ──
+(function init() {
+  renderChips();
+  const welcomes = {
+    en: `Welcome to Pura Vida Miami! 🌿\n\nI'm Vida — your personal guide to everything Pura Vida! Whether you're looking for healthy meal ideas, want to find your nearest location, curious about our rewards program, or need catering for your next event — I'm here!\n\nHealth is happiness, and another day in paradise starts with the right food. 🥗✨\n\nWhat can I help you with today?`,
+    es: `¡Bienvenido a Pura Vida Miami! 🌿\n\nSoy Vida — tu guía personal. ¡La salud es felicidad!\n\n¿En qué puedo ayudarte hoy?`,
+    fr: `Bienvenue chez Pura Vida Miami ! 🌿\n\nJe suis Vida — votre guide personnel. La santé, c'est le bonheur !\n\nQue puis-je faire pour vous ?`,
+    de: `Willkommen bei Pura Vida Miami! 🌿\n\nIch bin Vida. Gesundheit ist Glück!\n\nWomit darf ich helfen?`,
+    it: `Benvenuto da Pura Vida Miami! 🌿\n\nSono Vida. La salute è felicità!\n\nCome posso aiutarti?`,
+    pt: `Bem-vindo ao Pura Vida Miami! 🌿\n\nSou Vida. Saúde é felicidade!\n\nEm que posso ajudá-lo?`,
+    zh: `欢迎来到 Pura Vida Miami！🌿\n\n我是 Vida。健康就是幸福！\n\n今天我能为您做些什么？`
+  };
+  setTimeout(() => addMessage('nora', welcomes[currentLang] || welcomes.en), 400);
+})();
+</script>
+</body>
+</html>
